@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Network Automation Tool</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #1a1a2e;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 820px;
+            background: #16213e;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid #0f3460;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #e94560;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #a7b6d6;
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #d0d8e8;
+            margin-bottom: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            background: #0f1729;
+            border: 1px solid #1f4068;
+            border-radius: 8px;
+            color: #ffffff;
+            font-family: 'Consolas', monospace;
+        }
+        input::placeholder { color: #4a6b8a; }
+        input:focus {
+            outline: none;
+            border-color: #e94560;
+            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.15);
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            cursor: pointer;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        button:hover { background: #d63651; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        #status {
+            min-height: 24px;
+            margin-top: 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status-success { color: #4caf50; }
+        .status-error { color: #f44336; }
+        .status-info { color: #a7b6d6; }
+        .output-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #d0d8e8;
+            margin-top: 28px;
+            margin-bottom: 12px;
+        }
+        #output {
+            background: #000000;
+            color: #00ff41;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 13.5px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid #1f4068;
+            min-height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌐 Network Automation Tool</h1>
+        <p class="subtitle">SSH into a router and run a command.</p>
+
+        <label>Router IP Address</label>
+        <input id="routerIp" type="text" placeholder="Enter your IP address" />
+
+        <label>Router Command</label>
+        <input id="command" type="text" placeholder="Enter your command" />
+
+        <button id="executeBtn" onclick="executeCommand()">Execute Command</button>
+
+        <p id="status"></p>
+
+        <h2 class="output-title">Router Output</h2>
+        <div id="output">Waiting for command...</div>
+    </div>
+
+    <script>
+        const API_URL = 'http://192.168.227.129:5001/api/execute';
+
+        async function executeCommand() {
+            const routerIp = document.getElementById('routerIp').value.trim();
+            const command = document.getElementById('command').value.trim();
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+            const btn = document.getElementById('executeBtn');
+
+            if (!routerIp || !command) {
+                status.className = 'status-error';
+                status.innerText = 'Please enter both IP and command!';
+                return;
+            }
+
+            status.className = 'status-info';
+            status.innerText = 'Executing...';
+            output.innerText = 'Connecting to router...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        router_ip: routerIp, 
+                        command: command 
+                    })
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    status.className = 'status-success';
+                    status.innerText = 'Command executed successfully.';
+                    output.innerText = result.output;
+                } else {
+                    status.className = 'status-error';
+                    status.innerText = 'Error: ' + (result.error || 'Unknown error');
+                    output.innerText = result.error || 'Failed to execute command';
+                }
+            } catch (error) {
+                status.className = 'status-error';
+                status.innerText = 'Error: ' + error.message;
+                output.innerText = 'Connection error: ' + error.message;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

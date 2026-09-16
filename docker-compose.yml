@@ -1,0 +1,39 @@
+services:
+  ploy-router:
+    build: ./frr
+    container_name: ploy-router
+    privileged: true
+    restart: always
+    volumes:
+      - ./frr/daemons:/etc/frr/daemons
+      - ./frr/vtysh.conf:/etc/frr/vtysh.conf
+    ports:
+      - "2023:22"
+    networks:
+      - ploy-network
+
+  ploy-backend:
+    build: ./backend
+    container_name: ploy-backend
+    restart: always
+    ports:
+      - "5001:5000"
+    networks:
+      - ploy-network
+
+  ploy-frontend:
+    image: nginx:alpine
+    container_name: ploy-frontend
+    restart: always
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    ports:
+      - "8081:80"
+    depends_on:
+      - ploy-backend
+    networks:
+      - ploy-network
+
+networks:
+  ploy-network:
+    driver: bridge
